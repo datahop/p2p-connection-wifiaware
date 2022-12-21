@@ -26,16 +26,16 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
+import java.util.concurrent.Flow;
 
-import datahop.WifiHotspotNotifier;
 import datahop.WifiHotspot;
+import datahop.WifiHotspotNotifier;
 
-public class WifiAwareServer implements WifiHotspot, Publication.Published {
+public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
 
-    private static volatile WifiAwareServer mWifiAwareServer;
+    private static volatile WifiAwareClient mWifiHotspot;
 
     private static WifiHotspotNotifier notifier;
 
@@ -57,25 +57,26 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
 
     private boolean serverStarted,sent;
 
-    private Publication pub;
-    public WifiAwareServer(Context context){
+    private Subscription sub;
+
+    public WifiAwareClient(Context context){
         wifiAwareManager = null;
         wifiAwareSession = null;
         networkSpecifier = null;
         connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        this.pub = new Publication(this);
+        this.sub = new Subscription(this);
         this.context = context;
     }
 
     /* Singleton method that returns a WifiDirectHotSpot instance
      * @return WifiDirectHotSpot instance
      */
-    public static synchronized WifiAwareServer getInstance(Context appContext) {
-        if (mWifiAwareServer == null) {
-            mWifiAwareServer = new WifiAwareServer(appContext);
+    public static synchronized WifiAwareClient getInstance(Context appContext) {
+        if (mWifiHotspot == null) {
+            mWifiHotspot = new WifiAwareClient(appContext);
             // initDriver();
         }
-        return mWifiAwareServer;
+        return mWifiHotspot;
     }
 
     /**
@@ -95,11 +96,6 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
             Log.e(TAG, "notifier not found");
             return;
         }
-    }
-
-    @Override
-    public void stop() {
-
     }
 
     public boolean startManager(String peerId, int port, byte[] status){
@@ -221,8 +217,8 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
     }
 
     public void startDiscovery(WifiAwareSession session){
-        pub.closeSession();
-        pub.publishService(session,port,status);
+        sub.closeSession();
+        sub.subscribeToService(session,port,status);
     }
 
     private void closeSession() {
@@ -232,7 +228,10 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
             wifiAwareSession = null;
         }
     }
+    @Override
+    public void stop() {
 
+    }
 
     @TargetApi(26)
     private void requestNetwork() {
