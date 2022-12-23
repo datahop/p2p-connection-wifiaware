@@ -33,7 +33,7 @@ import java.util.Enumeration;
 import datahop.WifiHotspotNotifier;
 import datahop.WifiHotspot;
 
-public class WifiAwareServer implements WifiHotspot, Publication.Published {
+public class WifiAwareServer implements  Publication.Published {
 
     private static volatile WifiAwareServer mWifiAwareServer;
 
@@ -89,15 +89,14 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
     }
 
 
-    @Override
-    public void start() {
+    public void start(String peerId, int port, byte[] status) {
         if (notifier == null) {
             Log.e(TAG, "notifier not found");
             return;
         }
+        startManager(peerId,port,status);
     }
 
-    @Override
     public void stop() {
 
     }
@@ -320,10 +319,10 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
 
                                 byte[] myIP = addr.getAddress();
                                 Log.d("myTag","sending top "+new String(myIP));
-                                /*if (pub.getSession() != null && serverStarted) {
+                                if (pub.getSession() != null && serverStarted) {
                                     Log.d("myTag","sending to subs");
                                     pub.sendIP(myIP);
-                                }*/
+                                }
                                 break;
                             }
                         }
@@ -358,6 +357,14 @@ public class WifiAwareServer implements WifiHotspot, Publication.Published {
 
     @Override
     public void messageReceived(byte[] message) {
-
+        if (message.length == statusLength) {
+            if (message.hashCode() < status.hashCode()) {
+                networkSpecifier = pub.specifyNetwork(port);
+                Log.d(TAG, "Starting connection");
+                requestNetwork();
+                //Server.startServer(byteToPortInt(port),3);
+                serverStarted=true;
+            }
+        }
     }
 }

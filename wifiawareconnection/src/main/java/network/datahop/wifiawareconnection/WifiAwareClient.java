@@ -26,14 +26,14 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
-import java.util.concurrent.Flow;
 
-import datahop.WifiHotspot;
+//import datahop.WifiHotspot;
 import datahop.WifiHotspotNotifier;
 
-public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
+public class WifiAwareClient implements Subscription.Subscribed{
 
     private static volatile WifiAwareClient mWifiHotspot;
 
@@ -44,18 +44,20 @@ public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
     private WifiAwareManager wifiAwareManager;
     private ConnectivityManager connectivityManager;
     private WifiAwareSession wifiAwareSession;
+    private WifiAwareNetworkInfo peerAwareInfo;
+
     private NetworkSpecifier networkSpecifier;
     private Context context;
 
     private byte[] port, peerId,status,ip;
-    private int peerIdLength, statusLength;
+    private int peerIdLength, statusLength, portLength;
 
     public static final int  PEERID_MESSAGE = 55;
     public static final int  STATUS_MESSAGE = 66;
     public static final int  PORT_MESSAGE = 77;
     public static final int  IP_MESSAGE = 88;
 
-    private boolean serverStarted,sent;
+    private boolean clientStarted,sent;
 
     private Subscription sub;
 
@@ -90,24 +92,26 @@ public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
     }
 
 
-    @Override
-    public void start() {
+    //@Override
+    public void start(String peerId,int port,byte[] status) {
         if (notifier == null) {
             Log.e(TAG, "notifier not found");
             return;
         }
+        startManager(peerId,port,status);
     }
 
-    public boolean startManager(String peerId, int port, byte[] status){
+    private boolean startManager(String peerId, int port, byte[] status){
         Log.d(TAG,"Starting Wifi Aware status "+new String(status));
         PackageManager packageManager = context.getPackageManager();
         boolean hasNan  = false;
         this.peerId = peerId.getBytes(StandardCharsets.UTF_8);
         this.port = portToBytes(port);
+        this.portLength = this.port.length;
         this.status = status;
         this.statusLength = this.status.length;
         this.peerIdLength = this.peerId.length;
-        serverStarted = false;
+        clientStarted = false;
         sent = false;
         if (packageManager == null) {
             return false;
@@ -228,9 +232,10 @@ public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
             wifiAwareSession = null;
         }
     }
-    @Override
+    //@Override
     public void stop() {
-
+        sub.closeSession();
+        closeSession();
     }
 
     @TargetApi(26)
@@ -280,20 +285,9 @@ public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
             @Override
             public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities);
-                WifiAwareNetworkInfo peerAwareInfo = (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
-                Inet6Address peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
-                int peerPort = peerAwareInfo.getPort();
-                Log.d("myTag", "entering onCapabilitiesChanged "+peerIpv6+" "+peerPort);
-                /*try {
-                    if(ip!=null&&!sent) {
-                        Log.d("subscribeToService", "sending file");
-                        Client.clientSendFile(Inet6Address.getByAddress("WifiAwareHost", ip, peerIpv6.getScopedInterface()), byteToPortInt(port));
-                        sent=true;
-                    }
+                Log.d("myTag", "entering onCapabilitiesChanged");
+                peerAwareInfo = (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
 
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                }*/
             }
 
             //-------------------------------------------------------------------------------------------- +++++
@@ -356,7 +350,23 @@ public class WifiAwareClient implements WifiHotspot,Subscription.Subscribed{
     }
 
     @Override
-    public void messageReceived(byte[] message) {
+    public void messageReceived(byte[] message)  {
 
+        if (message.length == portLength) {
+                networkSpecifier = sub.specifyNetwork();
+                Log.d(TAG, "Starting connection");
+                requestNetwork();
+                //Server.startServer(byteToPortInt(port),3);
+                clientStarted=true;
+
+        } else if(message.length == 16){
+            try {
+                Log.d(TAG,"IP " +Inet6Address.getByAddress("WifiAwareHost", message, peerAwareInfo.getPeerIpv6Addr().getScopedInterface()).getHostAddress().split("%")[0]);
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
+            ip = message;
+
+        }
     }
 }
