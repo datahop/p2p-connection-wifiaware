@@ -30,14 +30,14 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
-import datahop.WifiHotspotNotifier;
-import datahop.WifiHotspot;
+import datahop.WifiAwareServerDriver;
+import datahop.WifiAwareServerNotifier;
 
-public class WifiAwareServer implements  Publication.Published {
+public class WifiAwareServer implements  Publication.Published, WifiAwareServerDriver {
 
     private static volatile WifiAwareServer mWifiAwareServer;
 
-    private static WifiHotspotNotifier notifier;
+    private static WifiAwareServerNotifier notifier;
 
     private static final String TAG="WifiAware";
     private BroadcastReceiver broadcastReceiver;
@@ -83,13 +83,13 @@ public class WifiAwareServer implements  Publication.Published {
      * when creating or destroying the group or when receiving users connections
      * @param notifier instance
      */
-    public void setNotifier(WifiHotspotNotifier notifier) {
+    public void setNotifier(WifiAwareServerNotifier notifier) {
         //Log.d(TAG, "Trying to start");
         this.notifier = notifier;
     }
 
 
-    public void start(String peerId, int port, byte[] status) {
+    public void start(String peerId, long port) {
         if (notifier == null) {
             Log.e(TAG, "notifier not found");
             return;
@@ -101,7 +101,7 @@ public class WifiAwareServer implements  Publication.Published {
 
     }
 
-    public boolean startManager(String peerId, int port, byte[] status){
+    public boolean startManager(String peerId, long port, byte[] status){
         Log.d(TAG,"Starting Wifi Aware status "+new String(status));
         PackageManager packageManager = context.getPackageManager();
         boolean hasNan  = false;
@@ -348,7 +348,7 @@ public class WifiAwareServer implements  Publication.Published {
         return ((bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF));
     }
 
-    public byte[] portToBytes(int port){
+    public byte[] portToBytes(long port){
         byte[] data = new byte [2];
         data[0] = (byte) (port & 0xFF);
         data[1] = (byte) ((port >> 8) & 0xFF);

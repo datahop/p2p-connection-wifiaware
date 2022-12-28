@@ -15,13 +15,13 @@ import android.widget.TextView;
 
 import java.nio.charset.StandardCharsets;
 
-import datahop.WifiConnectionNotifier;
-import datahop.WifiHotspotNotifier;
+import datahop.WifiAwareServerNotifier;
+import datahop.WifiAwareClientNotifier;
 
 import network.datahop.wifiawareconnection.WifiAwareClient;
 import network.datahop.wifiawareconnection.WifiAwareServer;
 
-public class MainActivity extends AppCompatActivity implements WifiHotspotNotifier, WifiConnectionNotifier {
+public class MainActivity extends AppCompatActivity implements WifiAwareServerNotifier, WifiAwareClientNotifier {
 
 
     private Button startHSButton,stopHSButton,connectButton,disconnectButton;
@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements WifiHotspotNotifi
             @Override
             public void onClick(View v) {
                 Log.d(TAG,"Starting HS");
-                hotspot.start(peerIdServerString,port,statusClientString.getBytes(StandardCharsets.UTF_8));
+                hotspot.start(peerIdServerString,port);
             }
         });
 
@@ -103,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements WifiHotspotNotifi
             public void onClick(View v) {
                 Log.d(TAG,"Connecting ");
                 //connection.connectV2(ssid.getText().toString(),password.getText().toString(),"","");
-                connection.start(peerIdClientString,port,statusClientString.getBytes(StandardCharsets.UTF_8));
+                connection.connect(peerIdClientString);
             }
         });
 
@@ -131,68 +131,36 @@ public class MainActivity extends AppCompatActivity implements WifiHotspotNotifi
     }
 
     @Override
-    public void clientsConnected(long l) {
-        Log.d(TAG,"Clients connected "+l);
-        if(counter>0&&l==0&&!stopping){
-            Log.d(TAG,"Discovery restart");
-            stopping=true;
-            //discoveryDriver.start(TAG,id,2000,30000);
-            hotspot.stop();
-        }
-        counter= (int) l;
-        stopping=false;
+    public void startOnSuccess() {
     }
 
     @Override
-    public void networkInfo(String net, String pass) {
-        //ssidView.setText("SSID: "+net);
-        //passView.setText("Pass: "+pass);
-
-        Log.d(TAG,"Network info "+net+" "+pass);
-    }
-
-    @Override
-    public void onFailure(long l) {
-        Log.d(TAG,"onFailure");
-
-    }
-
-    @Override
-    public void onSuccess() {
-        Log.d(TAG,"onSuccess");
-
-    }
-
-    @Override
-    public void onDisconnect() {
-        Log.d(TAG,"onDisconnect");
-
-    }
-
-    @Override
-    public void onConnectionFailure(long code, long started, long failed) {
-        Log.d(TAG,"onFailure "+code);
-
-    }
-
-    @Override
-    public void onConnectionSuccess(long started, long completed, long rssi , long speed ,long freq) {
-        Log.d(TAG,"onSuccess");
-
-    }
-
-    @Override
-    public void stopOnFailure(long l) {
-        Log.d(TAG,"stopOnFailure "+l);
+    public void startOnFailure(long code) {
     }
 
     @Override
     public void stopOnSuccess() {
-        Log.d(TAG,"stopOnSuccess");
-
     }
 
+    @Override
+    public void stopOnFailure(long code) {
+    }
 
+    @Override
+    public void networkReady(String ip, long port) {
+    }
 
+    @Override
+    public void onConnectionFailure(long code, long started, long failed) {
+    }
+
+    @Override
+    public void onConnectionSuccess(String ip, long port, String peerId) {
+    }
+
+    @Override
+    public void onDisconnect() {
+    }
 
 }
+

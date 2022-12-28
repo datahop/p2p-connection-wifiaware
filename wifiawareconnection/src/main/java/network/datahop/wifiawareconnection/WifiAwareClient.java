@@ -30,14 +30,14 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
-//import datahop.WifiHotspot;
-import datahop.WifiHotspotNotifier;
+import datahop.WifiAwareClientDriver;
+import datahop.WifiAwareClientNotifier;
 
-public class WifiAwareClient implements Subscription.Subscribed{
+public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClientDriver{
 
     private static volatile WifiAwareClient mWifiHotspot;
 
-    private static WifiHotspotNotifier notifier;
+    private static WifiAwareClientNotifier notifier;
 
     private static final String TAG="WifiAware";
     private BroadcastReceiver broadcastReceiver;
@@ -86,27 +86,27 @@ public class WifiAwareClient implements Subscription.Subscribed{
      * when creating or destroying the group or when receiving users connections
      * @param notifier instance
      */
-    public void setNotifier(WifiHotspotNotifier notifier) {
+    public void setNotifier(WifiAwareClientNotifier notifier) {
         //Log.d(TAG, "Trying to start");
         this.notifier = notifier;
     }
 
 
-    //@Override
-    public void start(String peerId,int port,byte[] status) {
+    @Override
+    public void connect(String peerId) {
         if (notifier == null) {
             Log.e(TAG, "notifier not found");
             return;
         }
-        startManager(peerId,port,status);
+        startManager(peerId);
     }
 
-    private boolean startManager(String peerId, int port, byte[] status){
+    private boolean startManager(String peerId){
         Log.d(TAG,"Starting Wifi Aware status "+new String(status));
         PackageManager packageManager = context.getPackageManager();
         boolean hasNan  = false;
         this.peerId = peerId.getBytes(StandardCharsets.UTF_8);
-        this.port = portToBytes(port);
+        //this.port = portToBytes(port);
         this.portLength = this.port.length;
         this.status = status;
         this.statusLength = this.status.length;
@@ -232,8 +232,9 @@ public class WifiAwareClient implements Subscription.Subscribed{
             wifiAwareSession = null;
         }
     }
-    //@Override
-    public void stop() {
+
+    @Override
+    public void disconnect() {
         sub.closeSession();
         closeSession();
     }
@@ -368,5 +369,10 @@ public class WifiAwareClient implements Subscription.Subscribed{
             ip = message;
 
         }
+    }
+
+    @Override
+    public String host(){
+        return null;
     }
 }
