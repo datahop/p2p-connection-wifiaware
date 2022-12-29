@@ -49,8 +49,8 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
     private NetworkSpecifier networkSpecifier;
     private Context context;
 
-    private byte[] port, peerId,status,ip;
-    private int peerIdLength, statusLength, portLength;
+    private byte[]  peerId,ip;
+    private int peerIdLength;
 
     public static final int  PEERID_MESSAGE = 55;
     public static final int  STATUS_MESSAGE = 66;
@@ -102,14 +102,11 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
     }
 
     private boolean startManager(String peerId){
-        Log.d(TAG,"Starting Wifi Aware status "+new String(status));
+        Log.d(TAG,"Starting Wifi Aware");
         PackageManager packageManager = context.getPackageManager();
         boolean hasNan  = false;
         this.peerId = peerId.getBytes(StandardCharsets.UTF_8);
-        //this.port = portToBytes(port);
-        this.portLength = this.port.length;
-        this.status = status;
-        this.statusLength = this.status.length;
+
         this.peerIdLength = this.peerId.length;
         clientStarted = false;
         sent = false;
@@ -222,7 +219,7 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
 
     public void startDiscovery(WifiAwareSession session){
         sub.closeSession();
-        sub.subscribeToService(session,port,status);
+        sub.subscribeToService(session,peerId);
     }
 
     private void closeSession() {
@@ -353,7 +350,7 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
     @Override
     public void messageReceived(byte[] message)  {
 
-        if (message.length == portLength) {
+        if (message.length == 2) {
                 networkSpecifier = sub.specifyNetwork();
                 Log.d(TAG, "Starting connection");
                 requestNetwork();

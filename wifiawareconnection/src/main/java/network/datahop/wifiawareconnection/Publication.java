@@ -32,7 +32,7 @@ public class Publication {
         this.pubs = pubs;
     }
 
-    public void publishService(WifiAwareSession wifiAwareSession,byte[] port, byte[] status) {
+    public void publishService(WifiAwareSession wifiAwareSession,byte[] port) {
 
         this.wifiAwareSession = wifiAwareSession;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { return; }

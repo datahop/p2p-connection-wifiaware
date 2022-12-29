@@ -27,7 +27,7 @@ public class Subscription {
     WifiAwareSession wifiAwareSession;
 
     private Subscribed subs;
-    private byte[] peerId,status;
+    private byte[] peerId;
     private PeerHandle peerHandle_;
 
     public Subscription(Subscribed subs){
@@ -35,10 +35,9 @@ public class Subscription {
     }
     //-------------------------------------------------------------------------------------------- +++++
     @TargetApi(26)
-    public void subscribeToService(WifiAwareSession wifiAwareSession,byte[] peerId,byte[] status) {
+    public void subscribeToService(WifiAwareSession wifiAwareSession,byte[] peerId) {
         this.wifiAwareSession = wifiAwareSession;
         this.peerId = peerId;
-        this.status = status;
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { return; }
 
@@ -63,6 +62,7 @@ public class Subscription {
                 //peerHandle = peerHandle_;
                 Log.d("subscribeToService", "onServiceDiscovered");
                // if(!networkBuilt)
+                byte[] status = new byte[2];
                 subscribeDiscoverySession.sendMessage(peerHandle,STATUS_MESSAGE,status);
             }
 

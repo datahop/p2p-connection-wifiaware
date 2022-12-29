@@ -47,7 +47,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
     private NetworkSpecifier networkSpecifier;
     private Context context;
 
-    private byte[] port, peerId,status,ip;
+    private byte[] port, peerId,ip;
     private int peerIdLength, statusLength;
 
     public static final int  PEERID_MESSAGE = 55;
@@ -94,21 +94,19 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
             Log.e(TAG, "notifier not found");
             return;
         }
-        startManager(peerId,port,status);
+        startManager(peerId,port);
     }
 
     public void stop() {
 
     }
 
-    public boolean startManager(String peerId, long port, byte[] status){
-        Log.d(TAG,"Starting Wifi Aware status "+new String(status));
+    public boolean startManager(String peerId, long port){
+        Log.d(TAG,"Starting Wifi Aware ");
         PackageManager packageManager = context.getPackageManager();
         boolean hasNan  = false;
         this.peerId = peerId.getBytes(StandardCharsets.UTF_8);
         this.port = portToBytes(port);
-        this.status = status;
-        this.statusLength = this.status.length;
         this.peerIdLength = this.peerId.length;
         serverStarted = false;
         sent = false;
@@ -221,7 +219,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
 
     public void startDiscovery(WifiAwareSession session){
         pub.closeSession();
-        pub.publishService(session,port,status);
+        pub.publishService(session,port);
     }
 
     private void closeSession() {
@@ -358,13 +356,13 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
     @Override
     public void messageReceived(byte[] message) {
         if (message.length == statusLength) {
-            if (message.hashCode() < status.hashCode()) {
+            //if (message.hashCode() < status.hashCode()) {
                 networkSpecifier = pub.specifyNetwork(port);
                 Log.d(TAG, "Starting connection");
                 requestNetwork();
                 //Server.startServer(byteToPortInt(port),3);
                 serverStarted=true;
-            }
+            //}
         }
     }
 }
