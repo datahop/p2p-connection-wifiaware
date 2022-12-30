@@ -13,6 +13,10 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class Publication {
 
@@ -32,13 +36,16 @@ public class Publication {
         this.pubs = pubs;
     }
 
-    public void publishService(WifiAwareSession wifiAwareSession,byte[] port) {
+    public void publishService(WifiAwareSession wifiAwareSession,byte[] port, byte[] peerId) {
 
+        List<byte[]> filter = new ArrayList<>();
+        filter.add(peerId);
         this.wifiAwareSession = wifiAwareSession;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { return; }
 
         PublishConfig config = new PublishConfig.Builder()
                 .setServiceName("network.datahop.wifiawaresample")
+                .setMatchFilter(filter)
                 .build();
 
         wifiAwareSession.publish(config, new DiscoverySessionCallback() {

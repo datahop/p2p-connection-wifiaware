@@ -15,13 +15,12 @@ import android.widget.TextView;
 
 import java.nio.charset.StandardCharsets;
 
-import datahop.WifiAwareServerNotifier;
-import datahop.WifiAwareClientNotifier;
+import datahop.WifiAwareNotifier;
 
 import network.datahop.wifiawareconnection.WifiAwareClient;
 import network.datahop.wifiawareconnection.WifiAwareServer;
 
-public class MainActivity extends AppCompatActivity implements WifiAwareServerNotifier, WifiAwareClientNotifier {
+public class MainActivity extends AppCompatActivity implements WifiAwareNotifier {
 
 
     private Button startHSButton,stopHSButton,connectButton,disconnectButton;
@@ -64,16 +63,17 @@ public class MainActivity extends AppCompatActivity implements WifiAwareServerNo
         peerIdServer = (TextView) findViewById(R.id.textview_ssid);
         statusServer = (TextView) findViewById(R.id.textview_pass);
 
-        peerIdServer.setText("PeerID: "+peerIdServerString);
-        peerIdClient.setText("PeerID: "+peerIdClientString);
-        statusClient.setText("Status: "+statusClientString);
-        statusServer.setText("StatusL "+statusServerString);
-
         peerIdClientString = "peerId2";
         peerIdServerString = "peerId1";
 
         statusServerString = "status1";
         statusClientString = "status2";
+
+        peerIdServer.setText("PeerID: "+peerIdServerString);
+        peerIdClient.setText("PeerID: "+peerIdClientString);
+        statusClient.setText("Status: "+statusClientString);
+        statusServer.setText("Status: "+statusServerString);
+
 
         startHSButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -103,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements WifiAwareServerNo
             public void onClick(View v) {
                 Log.d(TAG,"Connecting ");
                 //connection.connectV2(ssid.getText().toString(),password.getText().toString(),"","");
-                connection.connect(peerIdClientString);
+                connection.connect(peerIdServerString);
             }
         });
 
@@ -130,36 +130,21 @@ public class MainActivity extends AppCompatActivity implements WifiAwareServerNo
         super.onDestroy();
     }
 
-    @Override
-    public void startOnSuccess() {
-    }
-
-    @Override
-    public void startOnFailure(long code) {
-    }
-
-    @Override
-    public void stopOnSuccess() {
-    }
-
-    @Override
-    public void stopOnFailure(long code) {
-    }
-
-    @Override
-    public void networkReady(String ip, long port) {
-    }
 
     @Override
     public void onConnectionFailure(long code, long started, long failed) {
+        Log.d(TAG,"Connection failed");
     }
 
     @Override
     public void onConnectionSuccess(String ip, long port, String peerId) {
+        Log.d(TAG,"Connection succeeded "+ip+" "+port+" "+peerId);
     }
 
     @Override
     public void onDisconnect() {
+        Log.d(TAG,"Disconnected");
+
     }
 
 }

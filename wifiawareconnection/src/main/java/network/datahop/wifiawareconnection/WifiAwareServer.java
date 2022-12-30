@@ -31,13 +31,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
 import datahop.WifiAwareServerDriver;
-import datahop.WifiAwareServerNotifier;
+import datahop.WifiAwareNotifier;
 
 public class WifiAwareServer implements  Publication.Published, WifiAwareServerDriver {
 
     private static volatile WifiAwareServer mWifiAwareServer;
 
-    private static WifiAwareServerNotifier notifier;
+    private static WifiAwareNotifier notifier;
 
     private static final String TAG="WifiAware";
     private BroadcastReceiver broadcastReceiver;
@@ -47,16 +47,14 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
     private NetworkSpecifier networkSpecifier;
     private Context context;
 
-    private byte[] port, peerId,ip;
-    private int peerIdLength, statusLength;
+    private byte[] port, peerId;
 
     public static final int  PEERID_MESSAGE = 55;
     public static final int  STATUS_MESSAGE = 66;
     public static final int  PORT_MESSAGE = 77;
     public static final int  IP_MESSAGE = 88;
 
-    private boolean serverStarted,sent;
-
+    private boolean serverStarted;
     private Publication pub;
     public WifiAwareServer(Context context){
         wifiAwareManager = null;
@@ -65,6 +63,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
         connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         this.pub = new Publication(this);
         this.context = context;
+        this.serverStarted = false;
     }
 
     /* Singleton method that returns a WifiDirectHotSpot instance
@@ -83,7 +82,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
      * when creating or destroying the group or when receiving users connections
      * @param notifier instance
      */
-    public void setNotifier(WifiAwareServerNotifier notifier) {
+    public void setNotifier(WifiAwareNotifier notifier) {
         //Log.d(TAG, "Trying to start");
         this.notifier = notifier;
     }
@@ -107,9 +106,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
         boolean hasNan  = false;
         this.peerId = peerId.getBytes(StandardCharsets.UTF_8);
         this.port = portToBytes(port);
-        this.peerIdLength = this.peerId.length;
-        serverStarted = false;
-        sent = false;
+        this.serverStarted = false;
         if (packageManager == null) {
             return false;
         } else {
@@ -217,9 +214,9 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
         }, null);
     }
 
-    public void startDiscovery(WifiAwareSession session){
+    private void startDiscovery(WifiAwareSession session){
         pub.closeSession();
-        pub.publishService(session,port);
+        pub.publishService(session,port,peerId);
     }
 
     private void closeSession() {
@@ -266,6 +263,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
             public void onLost(Network network) {
                 super.onLost(network);
                 Log.d("myTag", "Lost Network");
+                notifier.onDisconnect();
             }
 
             @Override
@@ -282,16 +280,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
                 Inet6Address peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
                 int peerPort = peerAwareInfo.getPort();
                 Log.d("myTag", "entering onCapabilitiesChanged "+peerIpv6+" "+peerPort);
-                /*try {
-                    if(ip!=null&&!sent) {
-                        Log.d("subscribeToService", "sending file");
-                        Client.clientSendFile(Inet6Address.getByAddress("WifiAwareHost", ip, peerIpv6.getScopedInterface()), byteToPortInt(port));
-                        sent=true;
-                    }
 
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                }*/
             }
 
             //-------------------------------------------------------------------------------------------- +++++
@@ -320,6 +309,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
                                 if (pub.getSession() != null && serverStarted) {
                                     Log.d("myTag","sending to subs");
                                     pub.sendIP(myIP);
+                                    notifier.onConnectionSuccess(new String(myIP),byteToPortInt(port),new String(peerId));
                                 }
                                 break;
                             }
@@ -355,7 +345,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
 
     @Override
     public void messageReceived(byte[] message) {
-        if (message.length == statusLength) {
+        if (message.length == 2) {
             //if (message.hashCode() < status.hashCode()) {
                 networkSpecifier = pub.specifyNetwork(port);
                 Log.d(TAG, "Starting connection");

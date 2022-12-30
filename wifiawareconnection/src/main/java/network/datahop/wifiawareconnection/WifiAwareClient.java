@@ -31,13 +31,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
 import datahop.WifiAwareClientDriver;
-import datahop.WifiAwareClientNotifier;
+import datahop.WifiAwareNotifier;
 
 public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClientDriver{
 
     private static volatile WifiAwareClient mWifiHotspot;
 
-    private static WifiAwareClientNotifier notifier;
+    private static WifiAwareNotifier notifier;
 
     private static final String TAG="WifiAware";
     private BroadcastReceiver broadcastReceiver;
@@ -50,14 +50,12 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
     private Context context;
 
     private byte[]  peerId,ip;
-    private int peerIdLength;
+    private int port;
 
     public static final int  PEERID_MESSAGE = 55;
     public static final int  STATUS_MESSAGE = 66;
     public static final int  PORT_MESSAGE = 77;
     public static final int  IP_MESSAGE = 88;
-
-    private boolean clientStarted,sent;
 
     private Subscription sub;
 
@@ -86,7 +84,7 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
      * when creating or destroying the group or when receiving users connections
      * @param notifier instance
      */
-    public void setNotifier(WifiAwareClientNotifier notifier) {
+    public void setNotifier(WifiAwareNotifier notifier) {
         //Log.d(TAG, "Trying to start");
         this.notifier = notifier;
     }
@@ -107,9 +105,6 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
         boolean hasNan  = false;
         this.peerId = peerId.getBytes(StandardCharsets.UTF_8);
 
-        this.peerIdLength = this.peerId.length;
-        clientStarted = false;
-        sent = false;
         if (packageManager == null) {
             return false;
         } else {
@@ -203,8 +198,7 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
             @Override
             public void onAttachFailed() {
                 super.onAttachFailed();
-                //setHaveSession(false);
-                //setStatus("attach() failed.");
+
                 Log.d(TAG,"attach() failed");
             }
 
@@ -271,6 +265,8 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
             public void onLost(Network network) {
                 super.onLost(network);
                 Log.d("myTag", "Lost Network");
+                notifier.onDisconnect();
+
             }
 
             @Override
@@ -340,12 +336,6 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
         return ((bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF));
     }
 
-    public byte[] portToBytes(int port){
-        byte[] data = new byte [2];
-        data[0] = (byte) (port & 0xFF);
-        data[1] = (byte) ((port >> 8) & 0xFF);
-        return data;
-    }
 
     @Override
     public void messageReceived(byte[] message)  {
@@ -354,12 +344,13 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
                 networkSpecifier = sub.specifyNetwork();
                 Log.d(TAG, "Starting connection");
                 requestNetwork();
-                //Server.startServer(byteToPortInt(port),3);
-                clientStarted=true;
+                this.port = byteToPortInt(message);
 
         } else if(message.length == 16){
             try {
-                Log.d(TAG,"IP " +Inet6Address.getByAddress("WifiAwareHost", message, peerAwareInfo.getPeerIpv6Addr().getScopedInterface()).getHostAddress().split("%")[0]);
+                String ip = Inet6Address.getByAddress("WifiAwareHost", message, peerAwareInfo.getPeerIpv6Addr().getScopedInterface()).getHostAddress().split("%")[0];
+                String peerId = new String(this.peerId);
+                notifier.onConnectionSuccess(ip,port,peerId);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             }
@@ -370,6 +361,6 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
 
     @Override
     public String host(){
-        return null;
+        return new String(peerId);
     }
 }

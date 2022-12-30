@@ -13,6 +13,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Subscription {
@@ -38,11 +39,13 @@ public class Subscription {
     public void subscribeToService(WifiAwareSession wifiAwareSession,byte[] peerId) {
         this.wifiAwareSession = wifiAwareSession;
         this.peerId = peerId;
-
+        List<byte[]> filter = new ArrayList<>();
+        filter.add(peerId);
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { return; }
 
         SubscribeConfig config = new SubscribeConfig.Builder()
                 .setServiceName("network.datahop.wifiawaresample")
+                .setMatchFilter(filter)
                 .build();
 
         wifiAwareSession.subscribe(config, new DiscoverySessionCallback() {
