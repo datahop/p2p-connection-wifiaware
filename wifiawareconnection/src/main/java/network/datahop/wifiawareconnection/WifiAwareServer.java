@@ -235,51 +235,53 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
         }
 
         if (networkSpecifier == null) {
-            Log.d("myTag", "No NetworkSpecifier Created ");
+            Log.d(TAG, "No NetworkSpecifier Created ");
+            notifier.onConnectionFailure("No NetworkSpecifier Created ");
             return;
         }
-        Log.d("myTag", "building network interface");
-        Log.d("myTag", "using networkspecifier: " + networkSpecifier.toString());
+        Log.d(TAG, "building network interface");
+        Log.d(TAG, "using networkspecifier: " + networkSpecifier.toString());
         NetworkRequest networkRequest = new NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI_AWARE)
                 .setNetworkSpecifier(networkSpecifier)
                 .build();
 
-        Log.d("myTag", "finish building network interface");
+        Log.d(TAG, "finish building network interface");
         connectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback(){
             @Override
             public void onAvailable(Network network) {
                 super.onAvailable(network);
-                Log.d("myTag", "Network Available: " + network.toString());
+                Log.d(TAG, "Network Available: " + network.toString());
             }
 
             @Override
             public void onLosing(Network network, int maxMsToLive) {
                 super.onLosing(network, maxMsToLive);
-                Log.d("myTag", "losing Network");
+                Log.d(TAG, "losing Network");
             }
 
             @Override
             public void onLost(Network network) {
                 super.onLost(network);
-                Log.d("myTag", "Lost Network");
+                Log.d(TAG, "Lost Network");
                 notifier.onDisconnect();
             }
 
             @Override
             public void onUnavailable() {
                 super.onUnavailable();
-                Log.d("myTag", "entering onUnavailable ");
+                Log.d(TAG, "entering onUnavailable ");
+                notifier.onConnectionFailure("network unavailable");
+
             }
 
-            @RequiresApi(api = Build.VERSION_CODES.Q)
             @Override
             public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities);
                 WifiAwareNetworkInfo peerAwareInfo = (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
                 Inet6Address peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
                 int peerPort = peerAwareInfo.getPort();
-                Log.d("myTag", "entering onCapabilitiesChanged "+peerIpv6+" "+peerPort);
+                Log.d(TAG, "entering onCapabilitiesChanged "+peerIpv6+" "+peerPort);
 
             }
 
@@ -289,7 +291,7 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
                 super.onLinkPropertiesChanged(network, linkProperties);
                 //TODO: create socketServer on different thread to transfer files
 
-                Log.d("myTag", "entering linkPropertiesChanged ");
+                Log.d(TAG, "entering linkPropertiesChanged ");
 
                 //TODO: create socketServer on different thread to transfer files
                 try {
@@ -301,15 +303,14 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
                     while (Addresses.hasMoreElements()) {
                         InetAddress addr = Addresses.nextElement();
                         if (addr instanceof Inet6Address) {
-                            Log.d("myTag", "netinterface ipv6 address: " + addr.toString());
+                            Log.d(TAG, "netinterface ipv6 address: " + addr.toString());
                             if (((Inet6Address) addr).isLinkLocalAddress()) {
 
                                 byte[] myIP = addr.getAddress();
-                                Log.d("myTag","sending top "+new String(myIP));
+                                Log.d(TAG,"sending top "+new String(myIP));
                                 if (pub.getSession() != null && serverStarted) {
-                                    Log.d("myTag","sending to subs");
-                                    pub.sendIP(myIP);
-                                    notifier.onConnectionSuccess(new String(myIP),byteToPortInt(port),new String(peerId));
+                                    Log.d(TAG,"sending to subs");
+                                    notifier.onConnectionSuccess(addr.getHostAddress(),byteToPortInt(port),new String(peerId));
                                 }
                                 break;
                             }
@@ -317,13 +318,13 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
                     }
                 }
                 catch (SocketException e) {
-                    Log.d("myTag", "socket exception " + e.toString());
+                    Log.d(TAG, "socket exception " + e.toString());
                 }
                 catch (Exception e) {
                     //EXCEPTION!!! java.lang.NullPointerException: Attempt to invoke virtual method 'java.util.Enumeration java.net.NetworkInterface.getInetAddresses()' on a null object reference
-                    Log.d("myTag", "EXCEPTION!!! " + e.toString());
+                    Log.d(TAG, "EXCEPTION!!! " + e.toString());
                 }
-                //Log.d("myTag", "entering linkPropertiesChanged "+peerIpv6+" "+peerPort+" "+otherIP);
+                //Log.d(TAG, "entering linkPropertiesChanged "+peerIpv6+" "+peerPort+" "+otherIP);
 
             }
             //-------------------------------------------------------------------------------------------- -----

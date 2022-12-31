@@ -18,13 +18,18 @@ import android.net.wifi.aware.WifiAwareManager;
 import android.net.wifi.aware.WifiAwareNetworkInfo;
 import android.net.wifi.aware.WifiAwareSession;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.StrictMode;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
 
+import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -44,11 +49,10 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
     private WifiAwareManager wifiAwareManager;
     private ConnectivityManager connectivityManager;
     private WifiAwareSession wifiAwareSession;
-    private WifiAwareNetworkInfo peerAwareInfo;
-
+    private NetworkCapabilities networkCapabilities_;
     private NetworkSpecifier networkSpecifier;
     private Context context;
-
+    private Handler mHandler;
     private byte[]  peerId,ip;
     private int port;
 
@@ -66,6 +70,7 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
         connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         this.sub = new Subscription(this);
         this.context = context;
+        mHandler = new Handler(Looper.getMainLooper());
     }
 
     /* Singleton method that returns a WifiDirectHotSpot instance
@@ -237,34 +242,49 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
         }
 
         if (networkSpecifier == null) {
-            Log.d("myTag", "No NetworkSpecifier Created ");
+            Log.d(TAG, "No NetworkSpecifier Created ");
             return;
         }
-        Log.d("myTag", "building network interface");
-        Log.d("myTag", "using networkspecifier: " + networkSpecifier.toString());
+        Log.d(TAG, "building network interface");
+        Log.d(TAG, "using networkspecifier: " + networkSpecifier.toString());
         NetworkRequest networkRequest = new NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI_AWARE)
                 .setNetworkSpecifier(networkSpecifier)
                 .build();
 
-        Log.d("myTag", "finish building network interface");
+        Log.d(TAG, "finish building network interface");
         connectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback(){
             @Override
             public void onAvailable(Network network) {
                 super.onAvailable(network);
-                Log.d("myTag", "Network Available: " + network.toString());
+                Log.d(TAG, "onAvailable");
+                mHandler.post(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                while (networkCapabilities_ == null) {
+                                }
+                                WifiAwareNetworkInfo peerAwareInfo = (WifiAwareNetworkInfo) networkCapabilities_.getTransportInfo();
+                                Inet6Address peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
+                                Log.d(TAG, "Network Available: " + peerIpv6.getHostAddress()+" "+port);
+                                notifier.onConnectionSuccess(peerIpv6.getHostAddress(),port,new String(peerId));
+
+                            }
+                        }
+                );
+
             }
 
             @Override
             public void onLosing(Network network, int maxMsToLive) {
                 super.onLosing(network, maxMsToLive);
-                Log.d("myTag", "losing Network");
+                Log.d(TAG, "losing Network");
             }
 
             @Override
             public void onLost(Network network) {
                 super.onLost(network);
-                Log.d("myTag", "Lost Network");
+                Log.d(TAG, "Lost Network");
                 notifier.onDisconnect();
 
             }
@@ -272,60 +292,18 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
             @Override
             public void onUnavailable() {
                 super.onUnavailable();
-                Log.d("myTag", "entering onUnavailable ");
+                Log.d(TAG, "entering onUnavailable ");
             }
 
             @RequiresApi(api = Build.VERSION_CODES.Q)
             @Override
             public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities);
-                Log.d("myTag", "entering onCapabilitiesChanged");
-                peerAwareInfo = (WifiAwareNetworkInfo) networkCapabilities.getTransportInfo();
+                Log.d(TAG, "entering onCapabilitiesChanged");
+                networkCapabilities_ = networkCapabilities;
 
             }
 
-            //-------------------------------------------------------------------------------------------- +++++
-            @Override
-            public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {
-                super.onLinkPropertiesChanged(network, linkProperties);
-                //TODO: create socketServer on different thread to transfer files
-
-                Log.d("myTag", "entering linkPropertiesChanged ");
-
-                //TODO: create socketServer on different thread to transfer files
-                try {
-
-                    NetworkInterface awareNi = NetworkInterface.getByName(
-                            linkProperties.getInterfaceName());
-
-                    Enumeration<InetAddress> Addresses = awareNi.getInetAddresses();
-                    while (Addresses.hasMoreElements()) {
-                        InetAddress addr = Addresses.nextElement();
-                        if (addr instanceof Inet6Address) {
-                            Log.d("myTag", "netinterface ipv6 address: " + addr.toString());
-                            if (((Inet6Address) addr).isLinkLocalAddress()) {
-
-                                byte[] myIP = addr.getAddress();
-                                Log.d("myTag","sending top "+new String(myIP));
-                                /*if (pub.getSession() != null && serverStarted) {
-                                    Log.d("myTag","sending to subs");
-                                    pub.sendIP(myIP);
-                                }*/
-                                break;
-                            }
-                        }
-                    }
-                }
-                catch (SocketException e) {
-                    Log.d("myTag", "socket exception " + e.toString());
-                }
-                catch (Exception e) {
-                    //EXCEPTION!!! java.lang.NullPointerException: Attempt to invoke virtual method 'java.util.Enumeration java.net.NetworkInterface.getInetAddresses()' on a null object reference
-                    Log.d("myTag", "EXCEPTION!!! " + e.toString());
-                }
-                //Log.d("myTag", "entering linkPropertiesChanged "+peerIpv6+" "+peerPort+" "+otherIP);
-
-            }
             //-------------------------------------------------------------------------------------------- -----
 
         });
@@ -345,16 +323,6 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
                 Log.d(TAG, "Starting connection");
                 requestNetwork();
                 this.port = byteToPortInt(message);
-
-        } else if(message.length == 16){
-            try {
-                String ip = Inet6Address.getByAddress("WifiAwareHost", message, peerAwareInfo.getPeerIpv6Addr().getScopedInterface()).getHostAddress().split("%")[0];
-                String peerId = new String(this.peerId);
-                notifier.onConnectionSuccess(ip,port,peerId);
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            }
-            ip = message;
 
         }
     }

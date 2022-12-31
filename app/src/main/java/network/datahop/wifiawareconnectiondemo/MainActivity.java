@@ -13,6 +13,8 @@ import android.widget.Button;
 import android.widget.TextView;
 
 
+import java.net.Inet6Address;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 import datahop.WifiAwareNotifier;
@@ -39,11 +41,13 @@ public class MainActivity extends AppCompatActivity implements WifiAwareNotifier
     private static final int PERMISSION_WIFI_STATE = 2;
 
     private static final String TAG = "WifiTransportDemo";
+    private boolean server,client;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        server=client=false;
         counter=0;
         stopping=false;
         port=4353;
@@ -80,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements WifiAwareNotifier
             public void onClick(View v) {
                 Log.d(TAG,"Starting HS");
                 hotspot.start(peerIdServerString,port);
+                server=true;
             }
         });
 
@@ -88,13 +93,15 @@ public class MainActivity extends AppCompatActivity implements WifiAwareNotifier
             public void onClick(View v) {
                 Log.d(TAG,"Stopping HS");
                 hotspot.stop();
+                server=false;
             }
         });
 
         disconnectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //connection.disconnect();
+                connection.disconnect();
+                client=false;
             }
         });
 
@@ -102,8 +109,8 @@ public class MainActivity extends AppCompatActivity implements WifiAwareNotifier
             @Override
             public void onClick(View v) {
                 Log.d(TAG,"Connecting ");
-                //connection.connectV2(ssid.getText().toString(),password.getText().toString(),"","");
                 connection.connect(peerIdServerString);
+                client=true;
             }
         });
 
@@ -132,13 +139,20 @@ public class MainActivity extends AppCompatActivity implements WifiAwareNotifier
 
 
     @Override
-    public void onConnectionFailure(long code, long started, long failed) {
-        Log.d(TAG,"Connection failed");
+    public void onConnectionFailure(String message) {
+        Log.d(TAG,"Connection failed "+message);
     }
 
     @Override
     public void onConnectionSuccess(String ip, long port, String peerId) {
         Log.d(TAG,"Connection succeeded "+ip+" "+port+" "+peerId);
+        if(server)
+            Server.startServer((int)port,3);
+        else if(client) {
+            Client.clientSendFile(ip, (int)port);
+        }
+
+
     }
 
     @Override
