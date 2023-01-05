@@ -53,9 +53,10 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
     private NetworkSpecifier networkSpecifier;
     private Context context;
     private Handler mHandler;
-    private byte[]  peerId,ip;
+    private byte[] peerId;
+    private String  peerID;
     private int port;
-
+    private Inet6Address peerIpv6;
     public static final int  PEERID_MESSAGE = 55;
     public static final int  STATUS_MESSAGE = 66;
     public static final int  PORT_MESSAGE = 77;
@@ -265,10 +266,11 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
                                 while (networkCapabilities_ == null) {
                                 }
                                 WifiAwareNetworkInfo peerAwareInfo = (WifiAwareNetworkInfo) networkCapabilities_.getTransportInfo();
-                                Inet6Address peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
+                                peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
                                 Log.d(TAG, "Network Available: " + peerIpv6.getHostAddress()+" "+port);
-                                notifier.onConnectionSuccess(peerIpv6.getHostAddress(),port,new String(peerId));
-
+                                //notifier.onConnectionClientSuccess("::",port+1,peerIpv6.getHostAddress(),port,new String(peerId));
+                                if(peerID!=null&&peerIpv6!=null)
+                                    notifier.onConnectionClientSuccess("::",port+1,peerIpv6.getHostAddress(),port,peerID);
                             }
                         }
                 );
@@ -317,13 +319,18 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
 
     @Override
     public void messageReceived(byte[] message)  {
-
+        Log.d(TAG,"Message received "+message.length);
         if (message.length == 2) {
                 networkSpecifier = sub.specifyNetwork();
                 Log.d(TAG, "Starting connection");
                 requestNetwork();
                 this.port = byteToPortInt(message);
 
+        } if (message.length == 46){
+            Log.d(TAG,"PeerId:"+new String(message));
+            peerID = new String(message);
+            if(peerID!=null&&peerIpv6!=null)
+                notifier.onConnectionClientSuccess("::",port+1,peerIpv6.getHostAddress(),port,peerID);
         }
     }
 

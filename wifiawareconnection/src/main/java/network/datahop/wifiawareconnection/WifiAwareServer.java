@@ -30,6 +30,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
+import datahop.Datahop;
 import datahop.WifiAwareServerDriver;
 import datahop.WifiAwareNotifier;
 
@@ -306,11 +307,11 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
                             Log.d(TAG, "netinterface ipv6 address: " + addr.toString());
                             if (((Inet6Address) addr).isLinkLocalAddress()) {
 
-                                byte[] myIP = addr.getAddress();
-                                Log.d(TAG,"sending top "+new String(myIP));
+
                                 if (pub.getSession() != null && serverStarted) {
                                     Log.d(TAG,"sending to subs");
-                                    notifier.onConnectionSuccess(addr.getHostAddress(),byteToPortInt(port),new String(peerId));
+                                    notifier.onConnectionServerSuccess(addr.getHostAddress().split("%")[0],byteToPortInt(port),new String(peerId));
+                                    //pub.sendIP(Datahop.getPeerId().getBytes());
                                 }
                                 break;
                             }

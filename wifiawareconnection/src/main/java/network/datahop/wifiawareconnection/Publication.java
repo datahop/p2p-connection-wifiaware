@@ -45,7 +45,7 @@ public class Publication {
 
         PublishConfig config = new PublishConfig.Builder()
                 .setServiceName("network.datahop.wifiawaresample")
-                .setMatchFilter(filter)
+         //       .setMatchFilter(filter)
                 .build();
 
         wifiAwareSession.publish(config, new DiscoverySessionCallback() {

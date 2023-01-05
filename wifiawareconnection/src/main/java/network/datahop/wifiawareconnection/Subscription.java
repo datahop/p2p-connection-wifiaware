@@ -45,7 +45,7 @@ public class Subscription {
 
         SubscribeConfig config = new SubscribeConfig.Builder()
                 .setServiceName("network.datahop.wifiawaresample")
-                .setMatchFilter(filter)
+          //      .setMatchFilter(filter)
                 .build();
 
         wifiAwareSession.subscribe(config, new DiscoverySessionCallback() {
