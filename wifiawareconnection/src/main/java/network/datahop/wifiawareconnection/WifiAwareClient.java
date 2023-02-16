@@ -269,8 +269,10 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
                                 peerIpv6 = peerAwareInfo.getPeerIpv6Addr();
                                 Log.d(TAG, "Network Available: " + peerIpv6.getHostAddress()+" "+port);
                                 //notifier.onConnectionClientSuccess("::",port+1,peerIpv6.getHostAddress(),port,new String(peerId));
-                                if(peerID!=null&&peerIpv6!=null)
-                                    notifier.onConnectionClientSuccess("::",port+1,peerIpv6.getHostAddress(),port,peerID);
+                                if(peerID!=null&&peerIpv6!=null) {
+                                    Log.d(TAG, "Starting connection network available");
+                                    notifier.onConnectionClientSuccess(peerIpv6.getHostAddress().split("%")[0], peerIpv6.getHostAddress().split("%")[1], port, peerID);
+                                }
                             }
                         }
                 );
@@ -306,6 +308,44 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
 
             }
 
+
+            //-------------------------------------------------------------------------------------------- +++++
+            /*@Override
+            public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {
+                super.onLinkPropertiesChanged(network, linkProperties);
+                //TODO: create socketServer on different thread to transfer files
+
+                Log.d(TAG, "entering linkPropertiesChanged ");
+
+                //TODO: create socketServer on different thread to transfer files
+                try {
+
+                    NetworkInterface awareNi = NetworkInterface.getByName(
+                            linkProperties.getInterfaceName());
+
+                    Enumeration<InetAddress> Addresses = awareNi.getInetAddresses();
+                    while (Addresses.hasMoreElements()) {
+                        InetAddress addr = Addresses.nextElement();
+                        if (addr instanceof Inet6Address) {
+                            Log.d(TAG, "netinterface ipv6 address: " + addr.toString());
+                            if (((Inet6Address) addr).isLinkLocalAddress()) {
+                                    //notifier.onConnectionServerSuccess(addr.getHostAddress().split("%")[0],addr.getHostAddress().split("%")[1],port);
+                                    notifier.onConnectionClientSuccess(addr.getHostAddress().split("%")[0],addr.getHostAddress().split("%")[1], port, peerID);
+                            }
+                        }
+                    }
+                }
+                catch (SocketException e) {
+                    Log.d(TAG, "socket exception " + e.toString());
+                }
+                catch (Exception e) {
+                    //EXCEPTION!!! java.lang.NullPointerException: Attempt to invoke virtual method 'java.util.Enumeration java.net.NetworkInterface.getInetAddresses()' on a null object reference
+                    Log.d(TAG, "EXCEPTION!!! " + e.toString());
+                }
+                //Log.d(TAG, "entering linkPropertiesChanged "+peerIpv6+" "+peerPort+" "+otherIP);
+
+            }*/
+
             //-------------------------------------------------------------------------------------------- -----
 
         });
@@ -327,15 +367,21 @@ public class WifiAwareClient implements Subscription.Subscribed, WifiAwareClient
                 this.port = byteToPortInt(message);
 
         } if (message.length == 46){
-            Log.d(TAG,"PeerId:"+new String(message));
             peerID = new String(message);
-            if(peerID!=null&&peerIpv6!=null)
-                notifier.onConnectionClientSuccess("::",port+1,peerIpv6.getHostAddress(),port,peerID);
+            Log.d(TAG,"PeerId:"+peerID);
+
+            if(peerID!=null&&peerIpv6!=null) {
+                Log.d(TAG, "Starting connection msg received");
+                try {
+                    //notifier.onConnectionServerSuccess(peerIpv6.getHostAddress().split("%")[0], peerIpv6.getHostAddress().split("%")[1], port);
+                    notifier.onConnectionClientSuccess(peerIpv6.getHostAddress().split("%")[0], peerIpv6.getHostAddress().split("%")[1], port, peerID);
+                } catch (Exception e){Log.d(TAG,"Error:"+e);}
+            }
         }
     }
 
-    @Override
+    /*@Override
     public String host(){
         return new String(peerId);
-    }
+    }*/
 }

@@ -309,9 +309,12 @@ public class WifiAwareServer implements  Publication.Published, WifiAwareServerD
 
 
                                 if (pub.getSession() != null && serverStarted) {
-                                    Log.d(TAG,"sending to subs");
-                                    notifier.onConnectionServerSuccess(addr.getHostAddress().split("%")[0],byteToPortInt(port),new String(peerId));
-                                    //pub.sendIP(Datahop.getPeerId().getBytes());
+
+
+                                    String peerid = notifier.onConnectionServerSuccess(addr.getHostAddress().split("%")[0],addr.getHostAddress().split("%")[1],byteToPortInt(port));
+                                    Log.d(TAG,"connection server "+peerid);
+
+                                    pub.sendIP(peerid.getBytes());
                                 }
                                 break;
                             }

@@ -45,11 +45,11 @@ public class MainActivity extends AppCompatActivity  {
         server=client=false;
         counter=0;
         stopping=false;
-        port=4352;
+        port=43522;
         hotspot = WifiAwareServer.getInstance(getApplicationContext());
         connection = WifiAwareClient.getInstance(getApplicationContext());
         try {
-            Datahop.init(port, hotspot, connection);
+            Datahop.init(port);
         } catch (Exception e){Log.d(TAG,e.getMessage());}
         hotspot.setNotifier(Datahop.getWifiAwareNotifier());
         connection.setNotifier(Datahop.getWifiAwareNotifier());
